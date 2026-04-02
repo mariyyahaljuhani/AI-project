@@ -1,0 +1,97 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# ==========================================
+# 1. Load the data & Initial Inspection
+# ==========================================
+
+# تحميل البيانات
+df = pd.read_csv('/content/train.csv')
+
+# طباعة أول 5 صفوف
+print("First five rows:")
+print(df.head())
+
+# التحقق من الأبعاد (Rows and Columns)
+print(f"\nعدد الصفوف: {df.shape[0]}")
+print(f"عدد الأعمدة: {df.shape[1]}")
+
+# تفحص أنواع البيانات
+print("\n--- معلومات أنواع البيانات ---")
+df.info()
+
+# ==========================================
+# 2. Data Cleaning Function
+# ==========================================
+
+def clean_data(input_df):
+    data = input_df.copy()
+
+    # أ) Handling Duplicates (التعامل مع التكرار)
+    duplicate_count = data.duplicated().sum()
+    print(f"\nعدد الصفوف المكررة: {duplicate_count}")
+    if duplicate_count > 0:
+        data = data.drop_duplicates()
+
+
+    # ب) Fixing Data Types (تعديل أنواع البيانات)
+    # 1. تحويل MSSubClass إلى نص لأنه كود تصنيفي وليس رقمي حسابي
+    data['MSSubClass'] = data['MSSubClass'].astype(str)
+    # 2. تحويل MoSold (شهر البيع) إلى نص (Category)
+    data['MoSold'] = data['MoSold'].astype(str)
+
+
+    # ج) Finding & Handling Missing Values (القيم الناقصة)
+    # نحدد الأعمدة التي بها مفقودات كثيرة ونحذفها
+    cols_to_drop = ['PoolQC', 'MiscFeature', 'Alley', 'Fence', 'FireplaceQu']
+    data.drop(columns=cols_to_drop, inplace=True, errors='ignore')
+
+
+    # تعبئة القيم الرقمية بالوسيط (Median)
+    numeric_cols = data.select_dtypes(include=[np.number]).columns
+    data[numeric_cols] = data[numeric_cols].fillna(data[numeric_cols].median())
+
+
+    # تعبئة القيم النصية بالـ Mode
+    categorical_cols = data.select_dtypes(include=['object']).columns
+    for col in categorical_cols:
+        data[col] = data[col].fillna(data[col].mode()[0])
+
+
+    # د) Spot & Handle Outliers (القيم الشاذة)
+    # استخدام الـ 99th percentile لقص القيم المتطرفة في السعر (Target)
+    upper_limit = data['SalePrice'].quantile(0.99)
+    data['SalePrice'] = data['SalePrice'].clip(upper=upper_limit)
+    print(f"تم تحديد سقف السعر عند: {upper_limit}")
+
+# تشغيل دالة التنظيف
+df_cleaned = clean_data(df)
+
+# ==========================================
+# 3. Final Checks (التحقق النهائي)
+# ==========================================
+
+print("\n--- إجراء فحوصات التحقق (Checks) ---")
+
+# التحقق 1: لا يوجد قيم مفقودة في السعر
+assert df_cleaned['SalePrice'].isnull().sum() == 0, "يوجد قيم ناقصة في السعر!"
+df_cleaned
+
+# التحقق 2: كل قيم السعر أكبر من صفر
+assert (df_cleaned['SalePrice'] > 0).all(), "يوجد أسعار سالبة أو صفرية!"
+df_cleaned
+
+# التحقق 3: إجمالي القيم المفقودة في الداتا هو صفر
+print(f"إجمالي القيم المفقودة النهائي: {df_cleaned.isnull().sum().sum()}")
+
+# رسم Boxplot للتأكد من معالجة القيم الشاذة
+plt.figure(figsize=(8, 4))
+sns.boxplot(x=df_cleaned['SalePrice'])
+plt.title('Boxplot of SalePrice (After Capping)')
+plt.show()
+
+# حفظ البيانات المنظفة في ملف جديد
+df.to_csv('cleaned_data_new.csv', index=False)
+print("تم حفظ البيانات المنظفة بنجاح!")
