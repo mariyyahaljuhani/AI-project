@@ -10,17 +10,26 @@ import seaborn as sns
 # تحميل البيانات
 df = pd.read_csv('/content/train.csv')
 
+
 # طباعة أول 5 صفوف
 print("First five rows:")
 print(df.head())
 
+
 # التحقق من الأبعاد (Rows and Columns)
-print(f"\nعدد الصفوف: {df.shape[0]}")
-print(f"عدد الأعمدة: {df.shape[1]}")
+print(f"\n Rows number: {df.shape[0]}")
+print(f"Colomns number: {df.shape[1]}")
+
 
 # تفحص أنواع البيانات
-print("\n--- معلومات أنواع البيانات ---")
+print("\n Data info:")
 df.info()
+
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # ==========================================
 # 2. Data Cleaning Function
@@ -31,7 +40,7 @@ def clean_data(input_df):
 
     # أ) Handling Duplicates (التعامل مع التكرار)
     duplicate_count = data.duplicated().sum()
-    print(f"\nعدد الصفوف المكررة: {duplicate_count}")
+    print(f"\n Duplicated rows: {duplicate_count}")
     if duplicate_count > 0:
         data = data.drop_duplicates()
 
@@ -61,36 +70,44 @@ def clean_data(input_df):
 
 
     # د) Spot & Handle Outliers (القيم الشاذة)
-    # استخدام الـ 99th percentile لقص القيم المتطرفة في السعر (Target)
+    # عشان نطلع البيت اللي سعره اعلى من 99بالمية من باقي البيوت يعني نقفط النصاب
     upper_limit = data['SalePrice'].quantile(0.99)
     data['SalePrice'] = data['SalePrice'].clip(upper=upper_limit)
-    print(f"تم تحديد سقف السعر عند: {upper_limit}")
+    print(f"Upper limit: {upper_limit}")
+
+    return data
+
 
 # تشغيل دالة التنظيف
 df_cleaned = clean_data(df)
+
 
 # ==========================================
 # 3. Final Checks (التحقق النهائي)
 # ==========================================
 
-print("\n--- إجراء فحوصات التحقق (Checks) ---")
+print("\n Final checks")
 
 # التحقق 1: لا يوجد قيم مفقودة في السعر
-assert df_cleaned['SalePrice'].isnull().sum() == 0, "يوجد قيم ناقصة في السعر!"
-df_cleaned
+assert df_cleaned['SalePrice'].isnull().sum() == 0
+print(df_cleaned)
+
 
 # التحقق 2: كل قيم السعر أكبر من صفر
-assert (df_cleaned['SalePrice'] > 0).all(), "يوجد أسعار سالبة أو صفرية!"
-df_cleaned
+assert (df_cleaned['SalePrice'] > 0).all()
+print(df_cleaned)
+
 
 # التحقق 3: إجمالي القيم المفقودة في الداتا هو صفر
 print(f"إجمالي القيم المفقودة النهائي: {df_cleaned.isnull().sum().sum()}")
+
 
 # رسم Boxplot للتأكد من معالجة القيم الشاذة
 plt.figure(figsize=(8, 4))
 sns.boxplot(x=df_cleaned['SalePrice'])
 plt.title('Boxplot of SalePrice (After Capping)')
 plt.show()
+
 
 # حفظ البيانات المنظفة في ملف جديد
 df.to_csv('cleaned_data_new.csv', index=False)
