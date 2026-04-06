@@ -1,0 +1,81 @@
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import cosine_similarity
+
+# حملت البيانات اللي طلعتها من ملف الـ Features عشان تكون نظيفة وجاهزة
+df = pd.read_csv('final_features_data.csv')
+
+print("Done loading! Now let's do some manual math.")
+
+
+# هنا سحبنا عمود السعر وحولناه لـ NumPy array
+target = df['SalePrice'].values
+
+# حساب المتوسط يدوياً: مجموع القيم تقسيم عددها
+manual_mean = np.sum(target) / len(target)
+
+# حساب الانحراف المعياري يدوياً: جذر متوسط مربعات الفرق عن المتوسط
+# Variance = mean of sq_errors
+sq_errors = (target - manual_mean) ** 2
+manual_std = np.sqrt(np.sum(sq_errors) / len(target))
+
+print(f"Manual Mean (NumPy): {manual_mean:.2f}")
+print(f"Manual Std Dev (NumPy): {manual_std:.2f}")
+
+# للتأكد بس إن حلي صح (Validation)
+print(f"Pandas Mean (for check): {df['SalePrice'].mean():.2f}")
+
+
+# اخترت عمود مساحة الأرض 'LotArea' عشان أسوي له Scaling يدوياً
+X = df['LotArea'].values
+X_mean = np.mean(X)
+X_std = np.std(X)
+
+# المعادلة يدوياً: z = (X - mean) / std
+z_manual = (X - X_mean) / X_std
+
+# الحين بنجرب باستخدام StandardScaler الجاهز عشان نقارن
+scaler = StandardScaler()
+z_library = scaler.fit_transform(df[['LotArea']])
+
+# بنقارن أول 5 قيم عشان نتأكد إن النتايج متطابقة
+print("Manual Scaling (first 5):", z_manual[:5])
+print("Library Scaling (first 5):", z_library[:5].flatten())
+
+# الفرق المفروض يكون صفر أو قريب جداً منه
+print(f"\nDifference: {np.abs(z_manual[0] - z_library[0][0])}")
+
+
+# 1. نطلع أرخص بيت وأغلى بيت
+highest_val_idx = df['SalePrice'].idxmax()
+lowest_val_idx = df['SalePrice'].idxmin()
+
+# 2. نختار الأعمدة الرقمية بس عشان نسوي الحسبة (Vectors)
+numeric_df = df.select_dtypes(include=[np.number])
+vector_high = numeric_df.loc[highest_val_idx].values.reshape(1, -1)
+vector_low = numeric_df.loc[lowest_val_idx].values.reshape(1, -1)
+
+# 3. حساب الكوساين (Cosine Similarity)
+# القيمة قريبة من 1 يعني متشابهين، قريبة من 0 يعني مختلفين تماماً
+similarity = cosine_similarity(vector_high, vector_low)
+
+print(f"Cosine Similarity between highest and lowest house: {similarity[0][0]:.4f}")
+# Insight: غالباً بيطلع الرقم بعيد عن 1 لأن مواصفات القصر تختلف تماماً عن البيت المتواضع
+
+
+# بنحدد البيوت عالية الجودة (مثلاً OverallQual >= 8)
+high_quality_df = df[df['OverallQual'] >= 8]
+
+# بنحدد كم واحد منهم سعره فوق الـ 200 ألف
+threshold = 200000
+above_threshold = high_quality_df[high_quality_df['SalePrice'] > threshold]
+
+# الاحتمال = (الجزء / الكل)
+probability = len(above_threshold) / len(high_quality_df)
+
+print(f"Total High Quality Houses: {len(high_quality_df)}")
+print(f"High Quality & Above ${threshold}: {len(above_threshold)}")
+print(f"Probability (Fraction): {probability:.2%}")
+
+#  هذا الاحتمال يوريني قد ايش ميزة 'الجودة' قوية في تحديد السعر
