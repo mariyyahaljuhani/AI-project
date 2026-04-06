@@ -7,11 +7,12 @@ from sklearn.preprocessing import StandardScaler
 # تحميل البيانات المنظفة من الملف السابق
 df = pd.read_csv('/content/cleaned_data_new.csv')
 
-print(f"تم تحميل البيانات بنجاح. الحجم: {df.shape}")
-print(f"إجمالي القيم المفقودة: {df.isnull().sum().sum()}")
+print(f"Size: {df.shape}")
+print(f"Total of missimg values: {df.isnull().sum().sum()}")
+
 
 # 1. One-hot encode (MSZoning & Street)
-# السبب: المودل يحتاج أرقاماً لفهم تصنيفات المناطق والشوارع بدلاً من النصوص.
+# السبب: المودل يحتاج ارقام عشان يفهم تصنيفات المناطق والشوارع بدال من النصوص.
 
 # Define columns to potentially one-hot encode
 cols_to_onehot = ['MSZoning', 'Street']
@@ -39,6 +40,7 @@ print(qual_map)
 # print(df) # Commenting this out to avoid printing a very large DataFrame
 print("تم الانتهاء من عملية الـ Encoding.")
 
+
 # 1. Create Domain Features
 # أ) نسبة السعر للمساحة (Price per SqFt) مع قسمة آمنة
 df['price_per_sqft'] = df['SalePrice'] / df['GrLivArea'].replace(0, np.nan)
@@ -57,6 +59,7 @@ df['Qual_x_Area'] = df['OverallQual'] * df['GrLivArea']
 print(df)
 print("تم إنشاء الميزات الجديدة بنجاح.")
 
+
 # 1. Log-transform (SalePrice) - عرض الهيستوجرام قبل وبعد
 plt.figure(figsize=(12, 5))
 plt.subplot(1, 2, 1)
@@ -74,7 +77,8 @@ plt.show()
 df['House_Age_Group'] = pd.cut(df['YearBuilt'], bins=[0, 1950, 1990, 2030], labels=['Old', 'Recent', 'New'])
 # السبب: يسهل التحليل عند معرفة "الحقبة الزمنية" للمنزل بدلاً من التعامل مع كل سنة بشكل فردي.
 
-print("تم الانتهاء من التحويل والتقسيم.")
+print("The conversion and division have been completed.")
+
 
 # 1. Scaling (StandardScaler)
 # تحجيم LotArea و GrLivArea
